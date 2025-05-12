@@ -1,0 +1,20 @@
+(parser-tests
+    (test-parses path
+        (input "()")
+        (output (path (entity)))
+    )
+
+    (test-parses path
+        (input "(a)")
+        (output (path (entity (variable "a"))))
+    )
+
+    (test-parses path
+        (input "(a)-[b]->(c)")
+        (output (path
+            (entity (variable "a"))
+            (relation none (variable "b"))
+            (entity (variable "c"))
+        ))
+    )
+)

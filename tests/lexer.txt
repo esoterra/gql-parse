@@ -1,0 +1,39 @@
+(lexer-tests
+    (test-no-error
+        (input "()")
+        (output (left-paren 0 1) (right-paren 1 1))
+    )
+
+    (test-no-error
+        (input "(a)")
+        (output (left-paren 0 1) (ident 1 1) (right-paren 2 1))
+    )
+
+    (test-no-error
+        (input "-[a]->")
+        (output
+            (dash 0 1)
+            (left-brace 1 1)
+            (ident 2 1)
+            (right-brace 3 1)
+            (right-arrow 4 2)
+        )
+    )
+
+    (test-no-error
+        (input "(a)-[b]->(c)")
+        (output
+            (left-paren 0 1)
+            (ident 1 1)
+            (right-paren 2 1)
+            (dash 3 1)
+            (left-brace 4 1)
+            (ident 5 1)
+            (right-brace 6 1)
+            (right-arrow 7 2)
+            (left-paren 9 1)
+            (ident 10 1)
+            (right-paren 11 1)
+        )
+    )
+)

@@ -1,0 +1,27 @@
+(parser-tests
+    (test-parses entity
+        (input "()")
+        (output (entity))
+    )
+
+    (test-parses entity
+        (input "(a)")
+        (output (entity (variable "a")))
+    )
+
+    (test-parses entity
+        (input "(a:Foo)")
+        (output (entity (variable "a") (label "Foo)))
+    )
+
+    (test-parses entity
+        (input "(a:Foo:Bar:Biz:Baz)")
+        (output (entity
+            (variable "a")
+            (label "Foo")
+            (label "Bar")
+            (label "Biz")
+            (label "Baz")
+        ))
+    )
+)
