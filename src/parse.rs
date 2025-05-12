@@ -72,42 +72,24 @@ pub trait Parse<'q, 'src> {
     fn parse(b: &'q Bump, input: &mut ParseInput<'q, 'src>) -> Result<&'q Self, Error>;
 }
 
+pub trait Peek<'q, 'src> {
+    fn peek(input: &ParseInput<'q, 'src>) -> bool;
+}
+
 impl<'q, 'src> Parse<'q, 'src> for ast::Path<'q, 'src> {
     fn parse(b: &'q Bump, input: &mut ParseInput<'q, 'src>) -> Result<&'q Self, Error> {
         let init = ast::Entity::parse(b, input)?;
-        let edges = parse_edges_rec(b, input, 1)?;
-        let edges = edges
-            .map(|mut edges| {
-                edges.reverse();
-                edges.into_bump_slice()
-            })
-            .unwrap_or(&[]);
+        let edges = parse_slice::<ast::Edge>(b, input)?;
         Ok(b.alloc(ast::Path { init, edges }))
     }
 }
 
-fn parse_edges_rec<'q, 'src>(
-    b: &'q Bump,
-    input: &mut ParseInput<'q, 'src>,
-    depth: usize,
-) -> Result<Option<Vec<'q, &'q ast::Edge<'q, 'src>>>, Error> {
-    let token = match input.peek() {
-        Some((token, _)) => token,
-        None => return Ok(None),
-    };
-    if matches!(token, Token::Dash | Token::LArrow | Token::RArrow) {
-        let edge = ast::Edge::parse(b, input)?;
-
-        let mut v = match parse_edges_rec(b, input, depth + 1)? {
-            Some(v) => v,
-            None => Vec::with_capacity_in(depth, b),
-        };
-
-        v.push(edge);
-
-        Ok(Some(v))
-    } else {
-        Ok(None)
+impl <'q, 'src> Peek<'q, 'src> for ast::Edge<'q, 'src> {
+    fn peek(input: &ParseInput<'q, 'src>) -> bool {
+        match input.peek() {
+            Some((Token::Dash | Token::LArrow | Token::RArrow, _)) => true,
+            _ => false,
+        }
     }
 }
 
@@ -170,6 +152,38 @@ impl<'q, 'src> Parse<'q, 'src> for ast::Entity<'q, 'src> {
 
         let entity = b.alloc(ast::Entity { variable, labels });
         Ok(entity)
+    }
+}
+
+fn parse_slice<'q, 'src, T: Parse<'q, 'src> + Peek<'q, 'src>>(b: &'q Bump, input: &mut ParseInput<'q, 'src>) -> Result<&'q [&'q T], Error> {
+    let values: Option<Vec<'q, &'q T>> = parse_vec_rec(b, input, 1)?;
+    let values = values
+        .map(|mut values| {
+            values.reverse();
+            values.into_bump_slice()
+        })
+        .unwrap_or(&[]);
+    Ok(values)
+}
+
+fn parse_vec_rec<'q, 'src, T: Parse<'q, 'src> + Peek<'q, 'src>>(
+    b: &'q Bump,
+    input: &mut ParseInput<'q, 'src>,
+    depth: usize,
+) -> Result<Option<Vec<'q, &'q T>>, Error> {
+    if T::peek(input) {
+        let value = T::parse(b, input)?;
+
+        let mut v = match parse_vec_rec(b, input, depth + 1)? {
+            Some(v) => v,
+            None => Vec::with_capacity_in(depth, b),
+        };
+
+        v.push(value);
+
+        Ok(Some(v))
+    } else {
+        Ok(None)
     }
 }
 
